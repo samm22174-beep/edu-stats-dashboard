@@ -22,7 +22,7 @@ const AdminPanel: React.FC<Props> = ({ stats, onSave }) => {
     setError(null);
 
     if (formData.boys < 0 || formData.girls < 0) {
-      setError("Negative values are not allowed.");
+      setError("Value cannot be negative.");
       return;
     }
 
@@ -35,7 +35,7 @@ const AdminPanel: React.FC<Props> = ({ stats, onSave }) => {
 
     onSave(newStats);
     setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 2500);
+    setTimeout(() => setIsSaved(false), 2000);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -48,85 +48,73 @@ const AdminPanel: React.FC<Props> = ({ stats, onSave }) => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-xl mx-auto space-y-8 animate-in slide-in-from-bottom-4 duration-500">
       <div className="flex items-center justify-between">
         <button 
           onClick={() => window.location.search = ''}
-          className="flex items-center text-xs font-bold text-slate-400 hover:text-indigo-600 transition-colors"
+          className="group flex items-center text-xs font-bold text-slate-400 hover:text-indigo-600 transition-colors"
         >
-          <ChevronLeft size={14} className="mr-1" /> View Public Site
+          <ChevronLeft size={16} className="mr-1 group-hover:-translate-x-1 transition-transform" /> 
+          Public Dashboard
         </button>
-        <div className="px-2 py-1 bg-amber-50 text-amber-600 rounded-md border border-amber-100 text-[10px] font-black uppercase tracking-widest">
-          Secure Editor
-        </div>
       </div>
 
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden">
-        <div className="p-6 bg-slate-50 border-b border-slate-100">
-          <h2 className="text-xl font-black text-slate-900 tracking-tight">Update Numbers</h2>
-          <p className="text-xs text-slate-500 mt-1">Changes are pushed instantly to the public dashboard.</p>
+      <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-2xl overflow-hidden">
+        <div className="p-8 bg-slate-50 border-b border-slate-100">
+          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Manage Counts</h2>
+          <p className="text-sm text-slate-500 mt-1">Updates are published instantly.</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Boys</label>
+        <form onSubmit={handleSubmit} className="p-8 space-y-8">
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-3">
+              <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Boys</label>
               <input
                 type="number"
                 name="boys"
                 value={formData.boys}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-xl font-bold transition-all"
+                className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-indigo-500 focus:bg-white transition-all outline-none text-2xl font-black"
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Girls</label>
+            <div className="space-y-3">
+              <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Girls</label>
               <input
                 type="number"
                 name="girls"
                 value={formData.girls}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none text-xl font-bold transition-all"
+                className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-rose-500 focus:bg-white transition-all outline-none text-2xl font-black"
               />
             </div>
           </div>
 
-          <div className="bg-slate-900 rounded-2xl p-5 text-white flex justify-between items-center">
+          <div className="bg-slate-900 rounded-3xl p-7 text-white flex justify-between items-center shadow-inner">
             <div>
-              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Live Total</p>
-              <p className="text-4xl font-black tracking-tighter">{total}</p>
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-1">Total Enrollment</p>
+              <p className="text-5xl font-black tracking-tighter">{total.toLocaleString()}</p>
             </div>
-            <RefreshCw size={24} className="text-slate-700" />
+            <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center">
+              <RefreshCw size={28} className="text-slate-600" />
+            </div>
           </div>
 
           {error && (
-            <div className="p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-[11px] font-bold flex items-center">
-              <AlertCircle size={14} className="mr-2 flex-shrink-0" /> {error}
+            <div className="p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-xs font-bold flex items-center">
+              <AlertCircle size={16} className="mr-3 flex-shrink-0" /> {error}
             </div>
           )}
 
           <button
             type="submit"
             disabled={isSaved}
-            className={`w-full py-4 rounded-xl font-black text-base shadow-lg transition-all active:scale-[0.98] flex items-center justify-center space-x-2 ${
-              isSaved ? 'bg-green-500 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+            className={`w-full py-5 rounded-2xl font-black text-lg shadow-xl transition-all active:scale-[0.97] flex items-center justify-center space-x-3 ${
+              isSaved ? 'bg-green-500 text-white shadow-green-100' : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-100'
             }`}
           >
-            {isSaved ? <><CheckCircle2 size={18} /> <span>Data Published</span></> : <><Save size={18} /> <span>Save & Update Dashboard</span></>}
+            {isSaved ? <><CheckCircle2 size={20} /> <span>Live Update Complete</span></> : <><Save size={20} /> <span>Save Changes</span></>}
           </button>
         </form>
-      </div>
-
-      <div className="bg-white p-5 rounded-2xl border border-slate-200 flex items-start space-x-4">
-        <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600 flex-shrink-0">
-          <AlertCircle size={18} />
-        </div>
-        <div>
-          <h4 className="text-xs font-bold text-slate-800 uppercase tracking-widest mb-1">How it works</h4>
-          <p className="text-[11px] text-slate-500 leading-relaxed">
-            Updating the numbers here saves the data to the browser's persistent storage. If you refresh the public site or visit it on this browser, the new numbers will show automatically. For multiple devices, ensure they point to the same database.
-          </p>
-        </div>
       </div>
     </div>
   );
