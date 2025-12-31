@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { StudentStats } from './types';
 import PublicDashboard from './PublicDashboard';
 import AdminPanel from './AdminPanel';
 
 const STORAGE_KEY = 'school_stats_permanent_v2';
+const SYNC_CHANNEL = 'school_stats_sync_channel';
 
 const DEFAULT_STATS: StudentStats = {
   total: 140,
@@ -15,38 +16,59 @@ const DEFAULT_STATS: StudentStats = {
 const App: React.FC = () => {
   const [stats, setStats] = useState<StudentStats>(DEFAULT_STATS);
   const [view, setView] = useState<'public' | 'admin'>('public');
+  const broadcastChannelRef = useRef<BroadcastChannel | null>(null);
 
-  // Load initial data and set up live listeners
+  // Initialize Broadcast Channel and Data
   useEffect(() => {
+    // 1. Setup Broadcast Channel for "on the spot" updates
+    const channel = new BroadcastChannel(SYNC_CHANNEL);
+    broadcastChannelRef.current = channel;
+
+    channel.onmessage = (event) => {
+      if (event.data && event.data.type === 'STATS_UPDATE') {
+        const incomingStats = event.data.payload as StudentStats;
+        setStats(prev => {
+          // Only update if incoming data is actually newer
+          if (new Date(incomingStats.lastUpdated) > new Date(prev.lastUpdated)) {
+            console.log("On-the-spot update received via BroadcastChannel");
+            return incomingStats;
+          }
+          return prev;
+        });
+      }
+    };
+
     const params = new URLSearchParams(window.location.search);
-    
-    // Set initial view based on URL
     if (params.get('admin') === 'true') {
       setView('admin');
     }
 
-    // 1. Initial Load Logic
+    // 2. Initial Data Loading Logic (The "Latest Wins" Strategy)
     const loadInitialData = () => {
       const urlData = params.get('d');
       const saved = localStorage.getItem(STORAGE_KEY);
       
-      let finalStats = DEFAULT_STATS;
+      let urlStats: StudentStats | null = null;
+      let storageStats: StudentStats | null = null;
 
-      // URL data takes priority for the very first load (Permanent Link)
       if (urlData) {
-        try {
-          finalStats = JSON.parse(atob(urlData));
-        } catch (e) {
-          console.error("Invalid URL data");
-        }
-      } 
-      // If no URL data, use what's in local storage
-      else if (saved) {
-        try {
-          finalStats = JSON.parse(saved);
-        } catch (e) {
-          finalStats = DEFAULT_STATS;
-        }
+        try { urlStats = JSON.parse(atob(urlData)); } catch (e) { console.error("Invalid URL data"); }
+      }
+      if (saved) {
+        try { storageStats = JSON.parse(saved); } catch (e) { console.error("Invalid storage data"); }
+      }
+
+      // Logic: Pick the absolute latest update between the URL and local storage
+      let finalStats = DEFAULT_STATS;
+      
+      if (urlStats && storageStats) {
+        finalStats = new Date(urlStats.lastUpdated) > new Date(storageStats.lastUpdated) 
+          ? urlStats 
+          : storageStats;
+      } else if (urlStats) {
+        finalStats = urlStats;
+      } else if (storageStats) {
+        finalStats = storageStats;
       }
 
       setStats(finalStats);
@@ -54,32 +76,44 @@ const App: React.FC = () => {
 
     loadInitialData();
 
-    // 2. THE FIX: Always listen for storage changes regardless of initial load source
+    // 3. Fallback: Storage event (for browsers that might struggle with BroadcastChannel)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY && e.newValue) {
         try {
           const newStats = JSON.parse(e.newValue);
-          // Only update if the incoming data is actually newer to prevent loops
           setStats(prev => {
-            if (newStats.lastUpdated !== prev.lastUpdated) {
+            if (new Date(newStats.lastUpdated) > new Date(prev.lastUpdated)) {
               return newStats;
             }
             return prev;
           });
         } catch (err) {
-          console.error("Failed to parse synced data", err);
+          console.error("Failed to parse synced storage data", err);
         }
       }
     };
 
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      channel.close();
+    };
   }, []);
 
   const handleUpdateStats = (newStats: StudentStats) => {
+    // 1. Update local state
     setStats(newStats);
-    // Setting localStorage triggers the 'storage' event in other tabs
+    
+    // 2. Persist to LocalStorage (triggers 'storage' event in other tabs)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newStats));
+    
+    // 3. Broadcast to all other frames/tabs immediately
+    if (broadcastChannelRef.current) {
+      broadcastChannelRef.current.postMessage({
+        type: 'STATS_UPDATE',
+        payload: newStats
+      });
+    }
   };
 
   return (
