@@ -18,8 +18,8 @@ const App: React.FC = () => {
   const [view, setView] = useState<'public' | 'admin'>('public');
   const broadcastChannelRef = useRef<BroadcastChannel | null>(null);
 
-  // Sync Logic
-  const syncFromStorage = () => {
+  // Core Sync Logic
+  const syncData = () => {
     const params = new URLSearchParams(window.location.search);
     const urlData = params.get('d');
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -28,51 +28,76 @@ const App: React.FC = () => {
     let storageStats: StudentStats | null = null;
 
     if (urlData) {
-      try { urlStats = JSON.parse(atob(urlData)); } catch (e) { console.error("URL parse error"); }
+      try {
+        urlStats = JSON.parse(atob(urlData));
+      } catch (e) {
+        console.error("Failed to parse URL data");
+      }
     }
+
     if (saved) {
-      try { storageStats = JSON.parse(saved); } catch (e) { console.error("Storage parse error"); }
+      try {
+        storageStats = JSON.parse(saved);
+      } catch (e) {
+        console.error("Failed to parse storage data");
+      }
     }
 
     setStats(prev => {
       let latest = prev;
-      if (urlStats && new Date(urlStats.lastUpdated) > new Date(latest.lastUpdated)) latest = urlStats;
-      if (storageStats && new Date(storageStats.lastUpdated) > new Date(latest.lastUpdated)) latest = storageStats;
+      
+      // Compare URL data vs Current state
+      if (urlStats && new Date(urlStats.lastUpdated) > new Date(latest.lastUpdated)) {
+        latest = urlStats;
+      }
+      
+      // Compare LocalStorage vs Current state (This is what syncs the Admin tab to the Site)
+      if (storageStats && new Date(storageStats.lastUpdated) > new Date(latest.lastUpdated)) {
+        latest = storageStats;
+      }
+
       return latest;
     });
   };
 
   useEffect(() => {
-    // 1. Setup Broadcast Channel
+    // 1. Initial Load
+    syncData();
+
+    // 2. Setup Admin View if needed
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('admin') === 'true') {
+      setView('admin');
+    }
+
+    // 3. Broadcast Channel for instant same-browser sync
     const channel = new BroadcastChannel(SYNC_CHANNEL);
     broadcastChannelRef.current = channel;
     channel.onmessage = (event) => {
       if (event.data?.type === 'STATS_UPDATE') {
-        const incoming = event.data.payload;
-        setStats(prev => (new Date(incoming.lastUpdated) > new Date(prev.lastUpdated) ? incoming : prev));
+        const incoming = event.data.payload as StudentStats;
+        setStats(prev => {
+          if (new Date(incoming.lastUpdated) > new Date(prev.lastUpdated)) {
+            return incoming;
+          }
+          return prev;
+        });
       }
     };
 
-    // 2. Initial Sync
-    syncFromStorage();
-
-    // 3. Set view
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('admin') === 'true') setView('admin');
-
-    // 4. "On the Spot" Listeners
-    window.addEventListener('storage', syncFromStorage);
-    window.addEventListener('focus', syncFromStorage);
+    // 4. Aggressive Listeners for "On the Spot" updates
+    window.addEventListener('storage', syncData);
+    window.addEventListener('focus', syncData); // Refresh when user clicks back to the tab
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') syncFromStorage();
+      if (document.visibilityState === 'visible') syncData();
     });
 
-    // 5. Heartbeat Sync (Checks every 2 seconds for updates)
-    const interval = setInterval(syncFromStorage, 2000);
+    // 5. Polling fallback for sandboxed iframes (Google Sites)
+    const interval = setInterval(syncData, 3000);
 
     return () => {
-      window.removeEventListener('storage', syncFromStorage);
-      window.removeEventListener('focus', syncFromStorage);
+      window.removeEventListener('storage', syncData);
+      window.removeEventListener('focus', syncData);
       clearInterval(interval);
       channel.close();
     };
@@ -80,9 +105,14 @@ const App: React.FC = () => {
 
   const handleUpdateStats = (newStats: StudentStats) => {
     setStats(newStats);
+    // Trigger storage event for other tabs
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newStats));
+    // Trigger broadcast for instant sync
     if (broadcastChannelRef.current) {
-      broadcastChannelRef.current.postMessage({ type: 'STATS_UPDATE', payload: newStats });
+      broadcastChannelRef.current.postMessage({
+        type: 'STATS_UPDATE',
+        payload: newStats
+      });
     }
   };
 
@@ -103,7 +133,7 @@ const App: React.FC = () => {
           {view === 'admin' && (
             <div className="flex items-center space-x-2 px-3 py-1 bg-amber-50 text-amber-700 rounded-full border border-amber-200">
               <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></span>
-              <span className="text-[9px] font-black uppercase">Edit Mode</span>
+              <span className="text-[9px] font-black uppercase tracking-widest">Admin Access</span>
             </div>
           )}
         </div>
@@ -113,7 +143,7 @@ const App: React.FC = () => {
         {view === 'admin' ? (
           <AdminPanel stats={stats} onSave={handleUpdateStats} onBack={() => setView('public')} />
         ) : (
-          <PublicDashboard stats={stats} />
+          <PublicDashboard stats={stats} onManualRefresh={syncData} />
         )}
       </main>
       
