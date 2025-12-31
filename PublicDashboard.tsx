@@ -1,5 +1,5 @@
 import React from 'react';
-import { StudentStats, InsightData } from './types';
+import { StudentStats } from './types';
 import { Users, UserRound, UserRoundSearch, PieChart as PieChartIcon, Clock } from 'lucide-react';
 import { 
   PieChart, 
@@ -12,8 +12,6 @@ import {
 
 interface Props {
   stats: StudentStats;
-  insights: InsightData | null;
-  loadingInsights: boolean;
 }
 
 const StatCard: React.FC<{
@@ -23,15 +21,15 @@ const StatCard: React.FC<{
   gradient: string;
   shadow: string;
 }> = ({ title, value, icon, gradient, shadow }) => (
-  <div className={`relative overflow-hidden bg-white p-6 rounded-3xl border border-slate-100 shadow-xl ${shadow} transition-all hover:-translate-y-1 duration-300`}>
-    <div className={`absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 rounded-full opacity-10 bg-gradient-to-br ${gradient}`}></div>
-    <div className="flex items-center space-x-4 relative z-10">
-      <div className={`p-4 rounded-2xl bg-gradient-to-br ${gradient} text-white shadow-lg`}>
-        {icon}
+  <div className={`relative overflow-hidden bg-white p-4 rounded-2xl border border-slate-100 shadow-sm ${shadow} flex-1 transition-transform hover:scale-[1.02]`}>
+    <div className={`absolute top-0 right-0 w-12 h-12 -mr-2 -mt-2 rounded-full opacity-5 bg-gradient-to-br ${gradient}`}></div>
+    <div className="flex items-center space-x-3 relative z-10">
+      <div className={`p-2.5 rounded-xl bg-gradient-to-br ${gradient} text-white shadow-sm flex-shrink-0`}>
+        {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement<any>, { size: 18 }) : icon}
       </div>
-      <div>
-        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">{title}</p>
-        <p className="text-3xl font-black text-slate-800 tracking-tight">{value.toLocaleString()}</p>
+      <div className="min-w-0">
+        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest truncate">{title}</p>
+        <p className="text-xl font-black text-slate-800 tracking-tighter leading-none">{value.toLocaleString()}</p>
       </div>
     </div>
   </div>
@@ -44,90 +42,93 @@ const PublicDashboard: React.FC<Props> = ({ stats }) => {
   ];
 
   return (
-    <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="text-center space-y-2">
-        <h2 className="text-4xl font-black text-slate-900 tracking-tight">Student Statistics</h2>
-        <div className="flex items-center justify-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-          <Clock size={12} className="mr-1.5" />
-          Updated: {new Date(stats.lastUpdated).toLocaleDateString()} at {new Date(stats.lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+    <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+      {/* Centered Heading */}
+      <div className="text-center space-y-1">
+        <h2 className="text-2xl font-black text-slate-900 tracking-tight">Current Enrollment</h2>
+        <div className="flex items-center justify-center text-[9px] font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-full w-max mx-auto">
+          <Clock size={10} className="mr-1.5 text-indigo-500" />
+          Updated: {new Date(stats.lastUpdated).toLocaleDateString()}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Stats Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <StatCard 
           title="Total Students" 
           value={stats.total} 
-          icon={<Users size={28} />} 
+          icon={<Users />} 
           gradient="from-slate-700 to-slate-900"
-          shadow="shadow-slate-200"
+          shadow="shadow-slate-200/50"
         />
         <StatCard 
           title="Total Boys" 
           value={stats.boys} 
-          icon={<UserRound size={28} />} 
+          icon={<UserRound />} 
           gradient="from-indigo-500 to-blue-600"
-          shadow="shadow-indigo-100"
+          shadow="shadow-indigo-200/50"
         />
         <StatCard 
           title="Total Girls" 
           value={stats.girls} 
-          icon={<UserRoundSearch size={28} />} 
+          icon={<UserRoundSearch />} 
           gradient="from-pink-500 to-rose-600"
-          shadow="shadow-pink-100"
+          shadow="shadow-pink-200/50"
         />
       </div>
 
-      <div className="flex justify-center">
-        <div className="w-full max-w-lg bg-white p-8 rounded-[2rem] border border-slate-100 shadow-2xl shadow-slate-200">
-          <div className="flex flex-col items-center mb-8">
-            <div className="p-3 bg-slate-50 rounded-2xl mb-3">
-              <PieChartIcon size={24} className="text-indigo-600" />
+      {/* Centered Chart Section */}
+      <div className="flex justify-center pt-2">
+        <div className="w-full max-w-lg bg-white p-6 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/30">
+          <div className="flex flex-col items-center mb-4">
+            <div className="p-2 bg-indigo-50 rounded-xl mb-1 text-indigo-600">
+              <PieChartIcon size={18} />
             </div>
-            <h3 className="text-xl font-black text-slate-800 tracking-tight">Gender Ratio</h3>
-            <div className="h-1 w-12 bg-indigo-600 rounded-full mt-2"></div>
+            <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Gender Distribution Ratio</h3>
           </div>
           
-          <div className="h-80 w-full relative">
+          <div className="h-52 md:h-64 w-full relative">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={chartData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={70}
-                  outerRadius={100}
-                  paddingAngle={8}
+                  innerRadius={55}
+                  outerRadius={75}
+                  paddingAngle={5}
                   dataKey="value"
-                  animationBegin={200}
-                  animationDuration={1500}
+                  strokeWidth={0}
+                  animationDuration={1000}
                 >
                   {chartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
+                    <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
                 <Tooltip 
                   contentStyle={{ 
-                    borderRadius: '20px', 
+                    borderRadius: '12px', 
                     border: 'none', 
-                    boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)',
-                    padding: '12px 16px',
+                    boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                    fontSize: '11px',
                     fontWeight: 'bold'
                   }}
                 />
                 <Legend 
                   verticalAlign="bottom" 
-                  height={36}
+                  height={30} 
                   iconType="circle"
-                  formatter={(value) => <span className="text-slate-600 font-bold px-2">{value}</span>}
+                  formatter={(value) => <span className="text-[10px] font-bold text-slate-500 px-1 uppercase tracking-wider">{value}</span>}
                 />
               </PieChart>
             </ResponsiveContainer>
             
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -mt-4 text-center pointer-events-none">
-              <p className="text-4xl font-black text-slate-800">
+            {/* Center Percentage Display */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -mt-3 text-center pointer-events-none">
+              <p className="text-3xl font-black text-slate-800 tracking-tighter leading-none">
                 {stats.total > 0 ? Math.round((stats.girls / stats.total) * 100) : 0}%
               </p>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Female</p>
+              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Female</p>
             </div>
           </div>
         </div>
