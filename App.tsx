@@ -83,27 +83,20 @@ const App: React.FC = () => {
         </div>
         
         <div className="flex items-center space-x-4">
-          {view === 'admin' ? (
-            <button 
-              onClick={() => setView('public')}
-              className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 transition-colors"
-            >
-              View Dashboard
-            </button>
-          ) : (
-            <button 
-              onClick={() => setView('admin')}
-              className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 transition-colors"
-            >
-              Admin Login
-            </button>
-          )}
-          
+          {/* Only show navigation buttons when in admin mode */}
           {view === 'admin' && (
-            <div className="flex items-center space-x-2 px-3 py-1 bg-amber-50 text-amber-700 rounded-full border border-amber-200">
-              <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></span>
-              <span className="text-[9px] font-black uppercase tracking-tighter">Edit Mode</span>
-            </div>
+            <>
+              <button 
+                onClick={() => setView('public')}
+                className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 transition-colors"
+              >
+                View Dashboard
+              </button>
+              <div className="flex items-center space-x-2 px-3 py-1 bg-amber-50 text-amber-700 rounded-full border border-amber-200">
+                <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></span>
+                <span className="text-[9px] font-black uppercase tracking-tighter">Edit Mode</span>
+              </div>
+            </>
           )}
         </div>
       </header>
