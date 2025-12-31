@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StudentStats } from './types';
-import { Save, RefreshCw, AlertCircle, CheckCircle2, ChevronLeft, Link as LinkIcon, Copy, Info, Eye } from 'lucide-react';
+import { Save, RefreshCw, AlertCircle, CheckCircle2, ChevronLeft, Link as LinkIcon, Copy, Info, Eye, Zap } from 'lucide-react';
 
 interface Props {
   stats: StudentStats;
@@ -41,10 +41,10 @@ const AdminPanel: React.FC<Props> = ({ stats, onSave, onBack }) => {
       lastUpdated: new Date().toISOString()
     };
 
-    onSave(newStats); // Updates parent state instantly
+    onSave(newStats); // Triggers parent handleUpdateStats with BroadcastChannel
     setPermanentLink(generatePermanentLink(newStats));
     setIsSaved(true);
-    // Note: No automatic view switch here so user can copy the link
+    setTimeout(() => setIsSaved(false), 5000);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -59,7 +59,7 @@ const AdminPanel: React.FC<Props> = ({ stats, onSave, onBack }) => {
   const copyToClipboard = () => {
     if (permanentLink) {
       navigator.clipboard.writeText(permanentLink);
-      alert("Link copied! Use this link in your Google Site to show the updated numbers.");
+      alert("Link copied! Paste this into Google Sites 'Embed' section.");
     }
   };
 
@@ -74,22 +74,28 @@ const AdminPanel: React.FC<Props> = ({ stats, onSave, onBack }) => {
           Dashboard
         </button>
 
-        {isSaved && (
-           <button 
-           onClick={onBack}
-           className="flex items-center text-[10px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 px-4 py-2 rounded-full border border-indigo-100 animate-pulse"
-         >
-           <Eye size={14} className="mr-2" /> 
-           View Changes
-         </button>
-        )}
+        <div className="flex items-center space-x-2">
+          <div className="flex items-center text-[9px] font-black uppercase tracking-widest text-green-500 bg-green-50 px-3 py-1.5 rounded-full border border-green-100">
+            <Zap size={10} className="mr-1.5 fill-current" />
+            Live Sync Active
+          </div>
+          {isSaved && (
+             <button 
+             onClick={onBack}
+             className="flex items-center text-[10px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 px-4 py-2 rounded-full border border-indigo-100 animate-in zoom-in"
+           >
+             <Eye size={14} className="mr-2" /> 
+             View Changes
+           </button>
+          )}
+        </div>
       </div>
 
       <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-2xl overflow-hidden">
         <div className="p-8 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-black text-slate-900 tracking-tight">Edit Enrollment</h2>
-            <p className="text-[10px] text-slate-400 mt-1 uppercase font-black tracking-widest">Instant Update Mode</p>
+            <p className="text-[10px] text-slate-400 mt-1 uppercase font-black tracking-widest">Instant Global Update</p>
           </div>
           <div className="p-3 bg-white rounded-2xl shadow-md">
              <RefreshCw size={24} className="text-indigo-500" />
@@ -136,10 +142,10 @@ const AdminPanel: React.FC<Props> = ({ stats, onSave, onBack }) => {
           <button
             type="submit"
             className={`w-full py-5 rounded-2xl font-black text-base shadow-xl transition-all active:scale-[0.98] flex items-center justify-center space-x-3 ${
-              isSaved ? 'bg-green-500 text-white shadow-green-100' : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-100'
+              isSaved ? 'bg-green-600 text-white shadow-green-100' : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-100'
             }`}
           >
-            {isSaved ? <><CheckCircle2 size={18} /> <span>Saved Successfully</span></> : <><Save size={18} /> <span>Save & Publish</span></>}
+            {isSaved ? <><CheckCircle2 size={18} /> <span>Stats Broadcasted!</span></> : <><Save size={18} /> <span>Save & Update Site</span></>}
           </button>
         </form>
 
@@ -147,18 +153,19 @@ const AdminPanel: React.FC<Props> = ({ stats, onSave, onBack }) => {
           <div className="p-8 bg-slate-50 border-t border-slate-100 space-y-4">
             <div className="flex items-center space-x-2 text-slate-700">
               <LinkIcon size={16} />
-              <h4 className="text-[10px] font-black uppercase tracking-widest">Google Sites Embed Link</h4>
+              <h4 className="text-[10px] font-black uppercase tracking-widest">Permanent Embed Link</h4>
             </div>
-            <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
-              <p className="text-[10px] text-indigo-700 font-bold leading-relaxed uppercase tracking-wider">
-                Note: Since Google Sites has no database, you MUST re-embed using this link to update your public site.
+            <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-sm">
+              <p className="text-[10px] text-slate-500 font-bold leading-relaxed uppercase tracking-wider">
+                This link saves your changes permanently. If the "On-the-spot" update doesn't appear for public visitors, update the link in your Google Sites editor.
               </p>
             </div>
             <div className="flex space-x-2">
               <input 
                 readOnly 
                 value={permanentLink} 
-                className="flex-grow bg-white border border-slate-200 rounded-xl px-4 py-2 text-[9px] font-mono text-slate-400"
+                className="flex-grow bg-white border border-slate-200 rounded-xl px-4 py-2 text-[9px] font-mono text-slate-400 focus:text-indigo-600"
+                onClick={(e) => (e.target as HTMLInputElement).select()}
               />
               <button 
                 onClick={copyToClipboard}
