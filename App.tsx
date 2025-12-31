@@ -25,35 +25,47 @@ const App: React.FC = () => {
       setView('admin');
     }
 
-    // 1. Try to load from URL first (Permanent Data)
-    const urlData = params.get('d');
-    if (urlData) {
-      try {
-        const decoded = JSON.parse(atob(urlData));
-        setStats(decoded);
-        return;
-      } catch (e) {
-        console.error("Invalid URL data");
-      }
-    }
+    // 1. Initial Load Logic
+    const loadInitialData = () => {
+      const urlData = params.get('d');
+      const saved = localStorage.getItem(STORAGE_KEY);
+      
+      let finalStats = DEFAULT_STATS;
 
-    // 2. Load from LocalStorage for standard sessions
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        setStats(JSON.parse(saved));
-      } catch (e) {
-        setStats(DEFAULT_STATS);
+      // URL data takes priority for the very first load (Permanent Link)
+      if (urlData) {
+        try {
+          finalStats = JSON.parse(atob(urlData));
+        } catch (e) {
+          console.error("Invalid URL data");
+        }
+      } 
+      // If no URL data, use what's in local storage
+      else if (saved) {
+        try {
+          finalStats = JSON.parse(saved);
+        } catch (e) {
+          finalStats = DEFAULT_STATS;
+        }
       }
-    }
 
-    // 3. AUTO-SYNC: Listen for changes from other tabs/windows
+      setStats(finalStats);
+    };
+
+    loadInitialData();
+
+    // 2. THE FIX: Always listen for storage changes regardless of initial load source
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY && e.newValue) {
         try {
           const newStats = JSON.parse(e.newValue);
-          setStats(newStats);
-          console.log("Stats auto-synced from another window.");
+          // Only update if the incoming data is actually newer to prevent loops
+          setStats(prev => {
+            if (newStats.lastUpdated !== prev.lastUpdated) {
+              return newStats;
+            }
+            return prev;
+          });
         } catch (err) {
           console.error("Failed to parse synced data", err);
         }
@@ -66,6 +78,7 @@ const App: React.FC = () => {
 
   const handleUpdateStats = (newStats: StudentStats) => {
     setStats(newStats);
+    // Setting localStorage triggers the 'storage' event in other tabs
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newStats));
   };
 
@@ -83,7 +96,6 @@ const App: React.FC = () => {
         </div>
         
         <div className="flex items-center space-x-4">
-          {/* Only show navigation buttons when in admin mode */}
           {view === 'admin' && (
             <>
               <button 
