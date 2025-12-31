@@ -48,9 +48,13 @@ const PublicDashboard: React.FC<Props> = ({ stats }) => {
       <div className="text-center space-y-2">
         <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tighter">Student Insights</h2>
         <div className="flex items-center justify-center">
-           <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center bg-white px-3 py-1.5 rounded-full border border-slate-100 shadow-sm">
-            <Clock size={10} className="mr-1.5 text-indigo-500" />
-            Live Sync: {new Date(stats.lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+           {/* Added key={stats.lastUpdated} to trigger re-animation on update */}
+           <p 
+            key={stats.lastUpdated}
+            className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center bg-white px-3 py-1.5 rounded-full border border-slate-100 shadow-sm animate-in zoom-in duration-300"
+          >
+            <Clock size={10} className="mr-1.5 text-indigo-500 animate-pulse" />
+            Live Sync: {new Date(stats.lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
           </p>
         </div>
       </div>
@@ -80,7 +84,7 @@ const PublicDashboard: React.FC<Props> = ({ stats }) => {
         />
       </div>
 
-      {/* Centered Gender Ratio Card with Right-Aligned Legend Dots */}
+      {/* Perfectly Centered & Balanced Gender Ratio Card */}
       <div className="flex justify-center pt-2">
         <div className="w-full max-w-[340px] bg-white p-8 rounded-[3.5rem] border border-slate-100 shadow-2xl shadow-slate-200/40 flex flex-col items-center overflow-hidden">
           <div className="flex flex-col items-center mb-0 text-center">
@@ -122,7 +126,7 @@ const PublicDashboard: React.FC<Props> = ({ stats }) => {
                   iconType="square"
                   wrapperStyle={{ 
                     paddingTop: '30px',
-                    paddingLeft: '20px' // Moves the square dots slightly to the right
+                    paddingLeft: '20px'
                   }}
                   formatter={(value) => <span className="text-[11px] font-black text-slate-400 px-2 uppercase tracking-[0.2em]">{value}</span>}
                 />
