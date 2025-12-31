@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { StudentStats } from './types';
-import { Save, RefreshCw, AlertCircle, CheckCircle2, ChevronLeft, Link as LinkIcon, Copy } from 'lucide-react';
+import { Save, RefreshCw, AlertCircle, CheckCircle2, ChevronLeft, Link as LinkIcon, Copy, Info, Eye } from 'lucide-react';
 
 interface Props {
   stats: StudentStats;
   onSave: (stats: StudentStats) => void;
+  onBack: () => void;
 }
 
-const AdminPanel: React.FC<Props> = ({ stats, onSave }) => {
+const AdminPanel: React.FC<Props> = ({ stats, onSave, onBack }) => {
   const [formData, setFormData] = useState({
     boys: stats.boys,
     girls: stats.girls
@@ -40,10 +41,10 @@ const AdminPanel: React.FC<Props> = ({ stats, onSave }) => {
       lastUpdated: new Date().toISOString()
     };
 
-    onSave(newStats);
+    onSave(newStats); // Updates parent state instantly
     setPermanentLink(generatePermanentLink(newStats));
     setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 3000);
+    // Note: No automatic view switch here so user can copy the link
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -58,59 +59,71 @@ const AdminPanel: React.FC<Props> = ({ stats, onSave }) => {
   const copyToClipboard = () => {
     if (permanentLink) {
       navigator.clipboard.writeText(permanentLink);
-      alert("Link copied! Use this link in your Google Sites embed.");
+      alert("Link copied! Use this link in your Google Site to show the updated numbers.");
     }
   };
 
   return (
-    <div className="max-w-xl mx-auto space-y-8 animate-in slide-in-from-bottom-4 duration-500">
+    <div className="max-w-xl mx-auto space-y-6 animate-in slide-in-from-bottom-4 duration-500">
       <div className="flex items-center justify-between">
         <button 
-          onClick={() => window.location.search = ''}
-          className="group flex items-center text-xs font-bold text-slate-400 hover:text-indigo-600 transition-colors"
+          onClick={onBack}
+          className="group flex items-center text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 transition-colors bg-white px-4 py-2 rounded-full border border-slate-100 shadow-sm"
         >
-          <ChevronLeft size={16} className="mr-1 group-hover:-translate-x-1 transition-transform" /> 
-          Back to Dashboard
+          <ChevronLeft size={14} className="mr-1 group-hover:-translate-x-1 transition-transform" /> 
+          Dashboard
         </button>
+
+        {isSaved && (
+           <button 
+           onClick={onBack}
+           className="flex items-center text-[10px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 px-4 py-2 rounded-full border border-indigo-100 animate-pulse"
+         >
+           <Eye size={14} className="mr-2" /> 
+           View Changes
+         </button>
+        )}
       </div>
 
       <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-2xl overflow-hidden">
-        <div className="p-8 bg-slate-50 border-b border-slate-100">
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Data Management</h2>
-          <p className="text-sm text-slate-500 mt-1">Updates are published via the Permanent Link.</p>
+        <div className="p-8 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Edit Enrollment</h2>
+            <p className="text-[10px] text-slate-400 mt-1 uppercase font-black tracking-widest">Instant Update Mode</p>
+          </div>
+          <div className="p-3 bg-white rounded-2xl shadow-md">
+             <RefreshCw size={24} className="text-indigo-500" />
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-8 space-y-8">
-          <div className="grid grid-cols-2 gap-6">
-            <div className="space-y-3">
-              <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Boys</label>
+        <form onSubmit={handleSubmit} className="p-8 space-y-6">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Boys</label>
               <input
                 type="number"
                 name="boys"
                 value={formData.boys}
                 onChange={handleChange}
-                className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-indigo-500 focus:bg-white transition-all outline-none text-2xl font-black"
+                className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-indigo-500 focus:bg-white transition-all outline-none text-2xl font-black"
               />
             </div>
-            <div className="space-y-3">
-              <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Girls</label>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Girls</label>
               <input
                 type="number"
                 name="girls"
                 value={formData.girls}
                 onChange={handleChange}
-                className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-rose-500 focus:bg-white transition-all outline-none text-2xl font-black"
+                className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-rose-500 focus:bg-white transition-all outline-none text-2xl font-black"
               />
             </div>
           </div>
 
-          <div className="bg-slate-900 rounded-3xl p-7 text-white flex justify-between items-center shadow-inner">
+          <div className="bg-slate-900 rounded-[2rem] p-6 text-white flex justify-between items-center shadow-xl">
             <div>
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-1">New Total</p>
-              <p className="text-5xl font-black tracking-tighter">{total.toLocaleString()}</p>
-            </div>
-            <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center">
-              <RefreshCw size={28} className="text-slate-600" />
+              <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Live Calculated Total</p>
+              <p className="text-4xl font-black tracking-tighter">{total.toLocaleString()}</p>
             </div>
           </div>
 
@@ -122,34 +135,36 @@ const AdminPanel: React.FC<Props> = ({ stats, onSave }) => {
 
           <button
             type="submit"
-            className={`w-full py-5 rounded-2xl font-black text-lg shadow-xl transition-all active:scale-[0.97] flex items-center justify-center space-x-3 ${
-              isSaved ? 'bg-green-500 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+            className={`w-full py-5 rounded-2xl font-black text-base shadow-xl transition-all active:scale-[0.98] flex items-center justify-center space-x-3 ${
+              isSaved ? 'bg-green-500 text-white shadow-green-100' : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-100'
             }`}
           >
-            {isSaved ? <><CheckCircle2 size={20} /> <span>Saved Successfully</span></> : <><Save size={20} /> <span>Save & Get Link</span></>}
+            {isSaved ? <><CheckCircle2 size={18} /> <span>Saved Successfully</span></> : <><Save size={18} /> <span>Save & Publish</span></>}
           </button>
         </form>
 
         {permanentLink && (
-          <div className="p-8 bg-indigo-50 border-t border-indigo-100 space-y-4">
-            <div className="flex items-center space-x-2 text-indigo-700">
-              <LinkIcon size={18} />
-              <h4 className="text-sm font-black uppercase tracking-widest">Google Sites Embed Link</h4>
+          <div className="p-8 bg-slate-50 border-t border-slate-100 space-y-4">
+            <div className="flex items-center space-x-2 text-slate-700">
+              <LinkIcon size={16} />
+              <h4 className="text-[10px] font-black uppercase tracking-widest">Google Sites Embed Link</h4>
             </div>
-            <p className="text-xs text-indigo-600 font-medium leading-relaxed">
-              Google Sites often resets data. To prevent this, copy the link below and use it for your "Embed" section in Google Sites. It will stay correct forever!
-            </p>
+            <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
+              <p className="text-[10px] text-indigo-700 font-bold leading-relaxed uppercase tracking-wider">
+                Note: Since Google Sites has no database, you MUST re-embed using this link to update your public site.
+              </p>
+            </div>
             <div className="flex space-x-2">
               <input 
                 readOnly 
                 value={permanentLink} 
-                className="flex-grow bg-white border border-indigo-200 rounded-xl px-4 py-2 text-[10px] font-mono text-indigo-800"
+                className="flex-grow bg-white border border-slate-200 rounded-xl px-4 py-2 text-[9px] font-mono text-slate-400"
               />
               <button 
                 onClick={copyToClipboard}
-                className="bg-indigo-600 text-white p-2.5 rounded-xl hover:bg-indigo-700 transition-colors shadow-md"
+                className="bg-indigo-600 text-white p-2.5 rounded-xl hover:bg-indigo-700 transition-all shadow-md active:scale-90"
               >
-                <Copy size={18} />
+                <Copy size={16} />
               </button>
             </div>
           </div>
