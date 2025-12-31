@@ -117,7 +117,7 @@ const AdminPanel: React.FC<Props> = ({ stats, onSave }) => {
               </li>
               <li className="flex items-start space-x-3">
                 <div className="bg-white/20 rounded-lg p-1 mt-0.5"><MousePointer2 size={14}/></div>
-                <p className="text-sm font-medium leading-tight">In Google Sites, click <b>Insert > Embed</b>.</p>
+                <p className="text-sm font-medium leading-tight">In Google Sites, click <b>Insert &gt; Embed</b>.</p>
               </li>
               <li className="flex items-start space-x-3">
                 <div className="bg-white/20 rounded-lg p-1 mt-0.5"><Layout size={14}/></div>
