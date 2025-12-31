@@ -6,9 +6,9 @@ import AdminPanel from './AdminPanel';
 const STORAGE_KEY = 'edu_stats_data';
 
 const DEFAULT_STATS: StudentStats = {
-  total: 100,
+  total: 120,
   boys: 50,
-  girls: 50,
+  girls: 70,
   lastUpdated: new Date().toISOString()
 };
 
@@ -35,26 +35,26 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 h-12 flex items-center justify-between">
+      <header className="bg-white border-b border-slate-100 sticky top-0 z-50">
+        <div className="max-w-5xl mx-auto px-4 h-12 flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <div className="w-5 h-5 bg-indigo-600 rounded flex items-center justify-center">
               <span className="text-white font-bold text-[10px]">E</span>
             </div>
-            <h1 className="text-sm font-bold text-slate-900 tracking-tight">
-              {isAdmin ? 'EduStats Admin' : 'Student Statistics'}
+            <h1 className="text-sm font-bold text-slate-800 tracking-tight">
+              {isAdmin ? 'Admin Portal' : 'Student Statistics'}
             </h1>
           </div>
           
           {isAdmin && (
-            <div className="flex items-center px-2 py-0.5 bg-amber-50 text-amber-700 rounded-full border border-amber-100">
-              <span className="text-[8px] font-bold uppercase tracking-widest">Admin</span>
+            <div className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full border border-amber-200">
+              <span className="text-[8px] font-black uppercase tracking-widest">Edit Mode</span>
             </div>
           )}
         </div>
       </header>
 
-      <main className="flex-grow w-full p-2 md:p-4 overflow-x-hidden">
+      <main className="flex-grow w-full p-3 md:p-6 overflow-x-hidden">
         {isAdmin ? (
           <AdminPanel 
             stats={stats} 
@@ -67,10 +67,10 @@ const App: React.FC = () => {
         )}
       </main>
 
-      <footer className="bg-white border-t border-slate-200 py-3">
-        <div className="max-w-6xl mx-auto px-4 text-center">
-          <p className="text-[10px] text-slate-400 font-medium">
-            &copy; {new Date().getFullYear()} School Enrollment Dashboard
+      <footer className="bg-white border-t border-slate-100 py-3">
+        <div className="max-w-5xl mx-auto px-4 text-center">
+          <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest">
+            Enrollment Management System &copy; {new Date().getFullYear()}
           </p>
         </div>
       </footer>
