@@ -46,9 +46,9 @@ const PublicDashboard: React.FC<Props> = ({ stats }) => {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="text-center space-y-2">
-        <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tighter">Student Insights</h2>
+        {/* Reduced font size from text-3xl md:text-4xl to text-xl md:text-2xl */}
+        <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight uppercase">Faafu Atoll School Student Status</h2>
         <div className="flex items-center justify-center">
-           {/* Added key={stats.lastUpdated} to trigger re-animation on update */}
            <p 
             key={stats.lastUpdated}
             className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center bg-white px-3 py-1.5 rounded-full border border-slate-100 shadow-sm animate-in zoom-in duration-300"
