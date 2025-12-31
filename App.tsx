@@ -3,8 +3,7 @@ import { StudentStats } from './types';
 import PublicDashboard from './PublicDashboard';
 import AdminPanel from './AdminPanel';
 
-// New storage key to force refresh and avoid cache issues
-const STORAGE_KEY = 'school_stats_v3';
+const STORAGE_KEY = 'school_stats_permanent_v1';
 
 const DEFAULT_STATS: StudentStats = {
   total: 140,
@@ -14,32 +13,34 @@ const DEFAULT_STATS: StudentStats = {
 };
 
 const App: React.FC = () => {
-  const [stats, setStats] = useState<StudentStats>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        return DEFAULT_STATS;
-      }
-    }
-    return DEFAULT_STATS;
-  });
-
+  const [stats, setStats] = useState<StudentStats>(DEFAULT_STATS);
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setIsAdmin(params.get('admin') === 'true');
     
-    // sync stats across tabs
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY && e.newValue) {
-        setStats(JSON.parse(e.newValue));
+    // 1. Try to load from URL first (for Permanent Google Sites Links)
+    const urlData = params.get('d');
+    if (urlData) {
+      try {
+        const decoded = JSON.parse(atob(urlData));
+        setStats(decoded);
+        return; // Use URL data as source of truth
+      } catch (e) {
+        console.error("Failed to decode URL data");
       }
-    };
-    window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
+    }
+
+    // 2. Otherwise load from LocalStorage
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        setStats(JSON.parse(saved));
+      } catch (e) {
+        setStats(DEFAULT_STATS);
+      }
+    }
   }, []);
 
   const handleUpdateStats = (newStats: StudentStats) => {
@@ -51,16 +52,16 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-slate-50 flex flex-col items-center">
       <header className="w-full bg-white border-b border-slate-100 py-4 px-6 flex justify-between items-center sticky top-0 z-50">
         <div className="flex items-center space-x-3">
-          <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-200">
-            <span className="text-white font-black text-xs">S</span>
+          <div className="w-8 h-8 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
+            <span className="text-white font-black text-sm">S</span>
           </div>
-          <span className="text-base font-black text-slate-800 tracking-tight">Student Dashboard</span>
+          <span className="text-lg font-black text-slate-800 tracking-tight">Student Dashboard</span>
         </div>
         
         {isAdmin && (
-          <div className="flex items-center space-x-2 px-3 py-1 bg-amber-50 text-amber-600 rounded-full border border-amber-100 shadow-sm">
+          <div className="flex items-center space-x-2 px-3 py-1 bg-amber-50 text-amber-700 rounded-full border border-amber-200 shadow-sm">
             <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></span>
-            <span className="text-[10px] font-black uppercase tracking-widest">Editor Mode</span>
+            <span className="text-[10px] font-black uppercase tracking-widest">Management Mode</span>
           </div>
         )}
       </header>
@@ -74,9 +75,9 @@ const App: React.FC = () => {
       </main>
       
       {!isAdmin && (
-        <footer className="w-full py-6 text-center border-t border-slate-100 bg-white/50">
-          <p className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.3em]">
-            Institutional Records &copy; {new Date().getFullYear()}
+        <footer className="w-full py-8 text-center border-t border-slate-100 bg-white/50">
+          <p className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.4em]">
+            Official Institutional Records &copy; {new Date().getFullYear()}
           </p>
         </footer>
       )}
