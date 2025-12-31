@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { StudentStats } from './types';
-import { Users, UserRound, UserRoundSearch, Clock, RefreshCw } from 'lucide-react';
+import { Users, UserRound, UserRoundSearch, Clock, RefreshCw, AlertCircle } from 'lucide-react';
 import { 
   PieChart, 
   Pie, 
@@ -12,6 +12,7 @@ import {
 
 interface Props {
   stats: StudentStats;
+  onManualRefresh: () => void;
 }
 
 const StatCard: React.FC<{
@@ -35,7 +36,7 @@ const StatCard: React.FC<{
   </div>
 );
 
-const PublicDashboard: React.FC<Props> = ({ stats }) => {
+const PublicDashboard: React.FC<Props> = ({ stats, onManualRefresh }) => {
   const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
@@ -55,13 +56,29 @@ const PublicDashboard: React.FC<Props> = ({ stats }) => {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="text-center space-y-2">
         <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight uppercase">Faafu Atoll School Student Status</h2>
-        <div className="flex items-center justify-center h-8">
-           <p className={`text-[9px] font-black uppercase tracking-[0.2em] flex items-center bg-white px-3 py-1.5 rounded-full border transition-all duration-500 ${
-              isSyncing ? 'border-indigo-500 text-indigo-600 shadow-md ring-4 ring-indigo-500/10' : 'border-slate-100 text-slate-400 shadow-sm'
-            }`}>
-            {isSyncing ? <RefreshCw size={10} className="mr-1.5 animate-spin" /> : <div className="w-1.5 h-1.5 rounded-full bg-green-500 mr-2 animate-pulse" />}
-            {isSyncing ? 'Syncing Live...' : `Updated ${new Date(stats.lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`}
-          </p>
+        
+        <div className="flex flex-col items-center space-y-3">
+          <div className="flex items-center justify-center h-8 space-x-2">
+             <div className={`text-[9px] font-black uppercase tracking-[0.2em] flex items-center bg-white px-3 py-1.5 rounded-full border transition-all duration-500 ${
+                isSyncing ? 'border-indigo-500 text-indigo-600 shadow-md ring-4 ring-indigo-500/10' : 'border-slate-100 text-slate-400 shadow-sm'
+              }`}>
+              {isSyncing ? <RefreshCw size={10} className="mr-1.5 animate-spin" /> : <div className="w-1.5 h-1.5 rounded-full bg-green-500 mr-2 animate-pulse" />}
+              {isSyncing ? 'Syncing Live...' : `Updated ${new Date(stats.lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+            </div>
+            
+            <button 
+              onClick={onManualRefresh}
+              className="p-1.5 bg-white border border-slate-100 rounded-full text-slate-400 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm"
+              title="Force Refresh Data"
+            >
+              <RefreshCw size={12} />
+            </button>
+          </div>
+          
+          <div className="flex items-center text-[8px] font-bold text-slate-300 uppercase tracking-widest">
+            <AlertCircle size={10} className="mr-1" />
+            Live updates may take up to 3s in Google Sites
+          </div>
         </div>
       </div>
 
