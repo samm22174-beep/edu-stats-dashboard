@@ -38,12 +38,11 @@ const StatCard: React.FC<{
 const PublicDashboard: React.FC<Props> = ({ stats }) => {
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // Visual feedback when stats change
   useEffect(() => {
     setIsSyncing(true);
-    const timer = setTimeout(() => setIsSyncing(false), 1000);
+    const timer = setTimeout(() => setIsSyncing(false), 800);
     return () => clearTimeout(timer);
-  }, [stats.lastUpdated]);
+  }, [stats.lastUpdated, stats.total, stats.boys, stats.girls]);
 
   const chartData = [
     { name: 'BOYS', value: stats.boys, color: '#6366F1' }, 
@@ -57,101 +56,39 @@ const PublicDashboard: React.FC<Props> = ({ stats }) => {
       <div className="text-center space-y-2">
         <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight uppercase">Faafu Atoll School Student Status</h2>
         <div className="flex items-center justify-center h-8">
-           <p 
-            key={stats.lastUpdated}
-            className={`text-[9px] font-black uppercase tracking-[0.2em] flex items-center bg-white px-3 py-1.5 rounded-full border transition-all duration-300 ${
-              isSyncing ? 'border-indigo-500 text-indigo-600 scale-105 shadow-md' : 'border-slate-100 text-slate-400 shadow-sm'
-            }`}
-          >
-            {isSyncing ? (
-              <RefreshCw size={10} className="mr-1.5 animate-spin" />
-            ) : (
-              <Clock size={10} className="mr-1.5 text-indigo-500 animate-pulse" />
-            )}
-            {isSyncing ? 'Syncing Update...' : `Live Sync: ${new Date(stats.lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`}
+           <p className={`text-[9px] font-black uppercase tracking-[0.2em] flex items-center bg-white px-3 py-1.5 rounded-full border transition-all duration-500 ${
+              isSyncing ? 'border-indigo-500 text-indigo-600 shadow-md ring-4 ring-indigo-500/10' : 'border-slate-100 text-slate-400 shadow-sm'
+            }`}>
+            {isSyncing ? <RefreshCw size={10} className="mr-1.5 animate-spin" /> : <div className="w-1.5 h-1.5 rounded-full bg-green-500 mr-2 animate-pulse" />}
+            {isSyncing ? 'Syncing Live...' : `Updated ${new Date(stats.lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`}
           </p>
         </div>
       </div>
 
-      {/* High Contrast Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatCard 
-          title="Total" 
-          value={stats.total} 
-          icon={<Users size={22} />} 
-          gradient="from-slate-800 to-slate-950"
-          shadow="shadow-slate-200/50"
-        />
-        <StatCard 
-          title="Boys" 
-          value={stats.boys} 
-          icon={<UserRound size={22} />} 
-          gradient="from-indigo-500 to-indigo-700"
-          shadow="shadow-indigo-200/40"
-        />
-        <StatCard 
-          title="Girls" 
-          value={stats.girls} 
-          icon={<UserRoundSearch size={22} />} 
-          gradient="from-rose-500 to-rose-700"
-          shadow="shadow-rose-200/40"
-        />
+        <StatCard title="Total" value={stats.total} icon={<Users size={22} />} gradient="from-slate-800 to-slate-950" shadow="shadow-slate-200/50" />
+        <StatCard title="Boys" value={stats.boys} icon={<UserRound size={22} />} gradient="from-indigo-500 to-indigo-700" shadow="shadow-indigo-200/40" />
+        <StatCard title="Girls" value={stats.girls} icon={<UserRoundSearch size={22} />} gradient="from-rose-500 to-rose-700" shadow="shadow-rose-200/40" />
       </div>
 
-      {/* Perfectly Centered & Balanced Gender Ratio Card */}
       <div className="flex justify-center pt-2">
         <div className="w-full max-w-[340px] bg-white p-8 rounded-[3.5rem] border border-slate-100 shadow-2xl shadow-slate-200/40 flex flex-col items-center overflow-hidden">
           <div className="flex flex-col items-center mb-0 text-center">
             <h3 className="text-[12px] font-black text-slate-800 tracking-[0.4em] uppercase">GENDER RATIO</h3>
             <div className="w-12 h-1 bg-indigo-500/10 rounded-full mt-2"></div>
           </div>
-
           <div className="h-72 w-full relative">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart margin={{ top: 10, right: 0, bottom: 0, left: 0 }}>
-                <Pie
-                  data={chartData}
-                  cx="50%"
-                  cy="45%"
-                  innerRadius={60}
-                  outerRadius={82}
-                  paddingAngle={6}
-                  dataKey="value"
-                  strokeWidth={0}
-                  animationDuration={1000}
-                >
-                  {chartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
+                <Pie data={chartData} cx="50%" cy="45%" innerRadius={60} outerRadius={82} paddingAngle={6} dataKey="value" strokeWidth={0} animationDuration={1000}>
+                  {chartData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                 </Pie>
-                <Tooltip 
-                  contentStyle={{ 
-                    borderRadius: '16px', 
-                    border: 'none', 
-                    boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)',
-                    fontSize: '10px',
-                    fontWeight: '900'
-                  }}
-                />
-                <Legend 
-                  verticalAlign="bottom" 
-                  height={50} 
-                  iconSize={12}
-                  iconType="square"
-                  wrapperStyle={{ 
-                    paddingTop: '30px',
-                    paddingLeft: '20px'
-                  }}
-                  formatter={(value) => <span className="text-[11px] font-black text-slate-400 px-2 uppercase tracking-[0.2em]">{value}</span>}
-                />
+                <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', fontSize: '10px', fontWeight: '900' }} />
+                <Legend verticalAlign="bottom" height={50} iconSize={12} iconType="square" formatter={(value) => <span className="text-[11px] font-black text-slate-400 px-2 uppercase tracking-[0.2em]">{value}</span>} />
               </PieChart>
             </ResponsiveContainer>
-            
-            {/* Center Percentage Display - Locked to circle center at cy=45% */}
             <div className="absolute top-[43.5%] left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
-              <p className="text-5xl font-black text-slate-900 tracking-tighter leading-none">
-                {femalePercentage}%
-              </p>
+              <p className="text-5xl font-black text-slate-900 tracking-tighter leading-none">{femalePercentage}%</p>
               <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1.5">FEMALE</p>
             </div>
           </div>
