@@ -14,12 +14,13 @@ const DEFAULT_STATS: StudentStats = {
 };
 
 const App: React.FC = () => {
-  const [stats, setStats] = useState<StudentStats>(DEFAULT_STATS);
+  // This state represents what the Public Dashboard shows
+  const [liveStats, setLiveStats] = useState<StudentStats>(DEFAULT_STATS);
   const [view, setView] = useState<'public' | 'admin'>('public');
   const broadcastChannelRef = useRef<BroadcastChannel | null>(null);
 
-  // Core Sync Logic
-  const syncData = () => {
+  // Sync Logic: Merges URL data and LocalStorage data based on the newest timestamp
+  const syncLiveStats = () => {
     const params = new URLSearchParams(window.location.search);
     const urlData = params.get('d');
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -31,7 +32,7 @@ const App: React.FC = () => {
       try {
         urlStats = JSON.parse(atob(urlData));
       } catch (e) {
-        console.error("Failed to parse URL data");
+        console.error("URL data corruption");
       }
     }
 
@@ -39,44 +40,42 @@ const App: React.FC = () => {
       try {
         storageStats = JSON.parse(saved);
       } catch (e) {
-        console.error("Failed to parse storage data");
+        console.error("Storage data corruption");
       }
     }
 
-    setStats(prev => {
-      let latest = prev;
+    setLiveStats(prev => {
+      let candidate = prev;
       
-      // Compare URL data vs Current state
-      if (urlStats && new Date(urlStats.lastUpdated) > new Date(latest.lastUpdated)) {
-        latest = urlStats;
+      if (urlStats && new Date(urlStats.lastUpdated) > new Date(candidate.lastUpdated)) {
+        candidate = urlStats;
       }
       
-      // Compare LocalStorage vs Current state (This is what syncs the Admin tab to the Site)
-      if (storageStats && new Date(storageStats.lastUpdated) > new Date(latest.lastUpdated)) {
-        latest = storageStats;
+      if (storageStats && new Date(storageStats.lastUpdated) > new Date(candidate.lastUpdated)) {
+        candidate = storageStats;
       }
 
-      return latest;
+      return candidate;
     });
   };
 
   useEffect(() => {
     // 1. Initial Load
-    syncData();
+    syncLiveStats();
 
-    // 2. Setup Admin View if needed
+    // 2. Check for Admin View
     const params = new URLSearchParams(window.location.search);
     if (params.get('admin') === 'true') {
       setView('admin');
     }
 
-    // 3. Broadcast Channel for instant same-browser sync
+    // 3. Setup Broadcast Channel for cross-tab sync
     const channel = new BroadcastChannel(SYNC_CHANNEL);
     broadcastChannelRef.current = channel;
     channel.onmessage = (event) => {
       if (event.data?.type === 'STATS_UPDATE') {
         const incoming = event.data.payload as StudentStats;
-        setStats(prev => {
+        setLiveStats(prev => {
           if (new Date(incoming.lastUpdated) > new Date(prev.lastUpdated)) {
             return incoming;
           }
@@ -85,29 +84,30 @@ const App: React.FC = () => {
       }
     };
 
-    // 4. Aggressive Listeners for "On the Spot" updates
-    window.addEventListener('storage', syncData);
-    window.addEventListener('focus', syncData); // Refresh when user clicks back to the tab
+    // 4. Robust event listeners for "On the spot" updates
+    window.addEventListener('storage', syncLiveStats);
+    window.addEventListener('focus', syncLiveStats);
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') syncData();
+      if (document.visibilityState === 'visible') syncLiveStats();
     });
 
-    // 5. Polling fallback for sandboxed iframes (Google Sites)
-    const interval = setInterval(syncData, 3000);
+    // 5. Polling for restricted environments (Google Sites)
+    const interval = setInterval(syncLiveStats, 3000);
 
     return () => {
-      window.removeEventListener('storage', syncData);
-      window.removeEventListener('focus', syncData);
+      window.removeEventListener('storage', syncLiveStats);
+      window.removeEventListener('focus', syncLiveStats);
       clearInterval(interval);
       channel.close();
     };
   }, []);
 
-  const handleUpdateStats = (newStats: StudentStats) => {
-    setStats(newStats);
-    // Trigger storage event for other tabs
+  // When Admin clicks "Publish"
+  const handlePublishStats = (newStats: StudentStats) => {
+    setLiveStats(newStats);
+    // Persist for next session
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newStats));
-    // Trigger broadcast for instant sync
+    // Alert other open frames/tabs immediately
     if (broadcastChannelRef.current) {
       broadcastChannelRef.current.postMessage({
         type: 'STATS_UPDATE',
@@ -130,20 +130,27 @@ const App: React.FC = () => {
         </div>
         
         <div className="flex items-center space-x-4">
-          {view === 'admin' && (
-            <div className="flex items-center space-x-2 px-3 py-1 bg-amber-50 text-amber-700 rounded-full border border-amber-200">
-              <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></span>
-              <span className="text-[9px] font-black uppercase tracking-widest">Admin Access</span>
-            </div>
+          {view === 'admin' ? (
+             <div className="flex items-center space-x-2 px-3 py-1 bg-amber-50 text-amber-700 rounded-full border border-amber-200">
+             <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></span>
+             <span className="text-[9px] font-black uppercase tracking-widest">Admin Control</span>
+           </div>
+          ) : (
+            <button 
+              onClick={() => setView('admin')}
+              className="text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 transition-colors"
+            >
+              Manage Data
+            </button>
           )}
         </div>
       </header>
 
       <main className="w-full max-w-4xl p-4 md:p-8 flex-grow">
         {view === 'admin' ? (
-          <AdminPanel stats={stats} onSave={handleUpdateStats} onBack={() => setView('public')} />
+          <AdminPanel stats={liveStats} onSave={handlePublishStats} onBack={() => setView('public')} />
         ) : (
-          <PublicDashboard stats={stats} onManualRefresh={syncData} />
+          <PublicDashboard stats={liveStats} onManualRefresh={syncLiveStats} />
         )}
       </main>
       
