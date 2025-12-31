@@ -3,7 +3,8 @@ import { StudentStats } from './types';
 import PublicDashboard from './PublicDashboard';
 import AdminPanel from './AdminPanel';
 
-const STORAGE_KEY = 'edu_stats_data_v2';
+// New storage key to force refresh and avoid cache issues
+const STORAGE_KEY = 'school_stats_v3';
 
 const DEFAULT_STATS: StudentStats = {
   total: 140,
@@ -31,7 +32,7 @@ const App: React.FC = () => {
     const params = new URLSearchParams(window.location.search);
     setIsAdmin(params.get('admin') === 'true');
     
-    // Listen for storage changes from other tabs (admin updates)
+    // sync stats across tabs
     const handleStorage = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY && e.newValue) {
         setStats(JSON.parse(e.newValue));
@@ -48,21 +49,23 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center">
-      {!isAdmin && (
-        <header className="w-full bg-white/80 backdrop-blur-md border-b border-slate-100 py-3 px-4 flex justify-between items-center sticky top-0 z-50">
-          <div className="flex items-center space-x-2">
-            <div className="w-6 h-6 bg-indigo-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-xs">E</span>
-            </div>
-            <span className="text-sm font-extrabold text-slate-800 tracking-tight">Student Statistics</span>
+      <header className="w-full bg-white border-b border-slate-100 py-4 px-6 flex justify-between items-center sticky top-0 z-50">
+        <div className="flex items-center space-x-3">
+          <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-200">
+            <span className="text-white font-black text-xs">S</span>
           </div>
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 px-2 py-1 rounded-md border border-slate-100">
-            Live Feed
+          <span className="text-base font-black text-slate-800 tracking-tight">Student Dashboard</span>
+        </div>
+        
+        {isAdmin && (
+          <div className="flex items-center space-x-2 px-3 py-1 bg-amber-50 text-amber-600 rounded-full border border-amber-100 shadow-sm">
+            <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></span>
+            <span className="text-[10px] font-black uppercase tracking-widest">Editor Mode</span>
           </div>
-        </header>
-      )}
+        )}
+      </header>
 
-      <main className={`w-full max-w-4xl ${isAdmin ? 'p-4' : 'p-3 md:p-6'} flex-grow`}>
+      <main className="w-full max-w-5xl p-4 md:p-8 flex-grow">
         {isAdmin ? (
           <AdminPanel stats={stats} onSave={handleUpdateStats} />
         ) : (
@@ -71,9 +74,9 @@ const App: React.FC = () => {
       </main>
       
       {!isAdmin && (
-        <footer className="w-full py-4 text-center border-t border-slate-100 bg-white/50">
-          <p className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.2em]">
-            School Data Dashboard &copy; {new Date().getFullYear()}
+        <footer className="w-full py-6 text-center border-t border-slate-100 bg-white/50">
+          <p className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.3em]">
+            Institutional Records &copy; {new Date().getFullYear()}
           </p>
         </footer>
       )}
