@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { StudentStats, ViewMode, InsightData } from './types';
+import { StudentStats, InsightData } from './types';
 import PublicDashboard from './PublicDashboard';
 import AdminPanel from './AdminPanel';
 import { getStatsInsights } from './geminiService';
-import { LayoutDashboard, Settings } from 'lucide-react';
 
 const STORAGE_KEY = 'edu_stats_data';
 
@@ -20,20 +19,28 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : DEFAULT_STATS;
   });
 
-  const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.DASHBOARD);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [insights, setInsights] = useState<InsightData | null>(null);
   const [loadingInsights, setLoadingInsights] = useState(false);
+
+  // Check URL for ?admin=true
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setIsAdmin(params.get('admin') === 'true');
+  }, []);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
   }, [stats]);
 
   const fetchInsights = useCallback(async () => {
-    setLoadingInsights(true);
-    const data = await getStatsInsights(stats);
-    if (data) setInsights(data);
-    setLoadingInsights(false);
-  }, [stats]);
+    if (!isAdmin) { // Only fetch insights for public view to save tokens/improve speed
+      setLoadingInsights(true);
+      const data = await getStatsInsights(stats);
+      if (data) setInsights(data);
+      setLoadingInsights(false);
+    }
+  }, [stats, isAdmin]);
 
   useEffect(() => {
     fetchInsights();
@@ -41,9 +48,6 @@ const App: React.FC = () => {
 
   const handleUpdateStats = (newStats: StudentStats) => {
     setStats(newStats);
-    getStatsInsights(newStats).then(data => {
-      if (data) setInsights(data);
-    });
   };
 
   return (
@@ -54,47 +58,30 @@ const App: React.FC = () => {
             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-lg">E</span>
             </div>
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight">EduStats</h1>
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+              {isAdmin ? 'EduStats Admin' : 'Student Statistics'}
+            </h1>
           </div>
-
-          <div className="flex space-x-1 bg-slate-100 p-1 rounded-lg">
-            <button
-              onClick={() => setViewMode(ViewMode.DASHBOARD)}
-              className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                viewMode === ViewMode.DASHBOARD
-                  ? 'bg-white text-indigo-600 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <LayoutDashboard size={18} className="mr-2" />
-              Dashboard
-            </button>
-            <button
-              onClick={() => setViewMode(ViewMode.ADMIN)}
-              className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                viewMode === ViewMode.ADMIN
-                  ? 'bg-white text-indigo-600 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Settings size={18} className="mr-2" />
-              Manage
-            </button>
-          </div>
+          
+          {isAdmin && (
+            <div className="flex items-center px-3 py-1 bg-amber-50 text-amber-700 rounded-full border border-amber-100">
+              <span className="text-[10px] font-bold uppercase tracking-widest">Editor Mode</span>
+            </div>
+          )}
         </div>
       </header>
 
       <main className="flex-grow max-w-6xl mx-auto w-full p-4 md:p-8">
-        {viewMode === ViewMode.DASHBOARD ? (
+        {isAdmin ? (
+          <AdminPanel 
+            stats={stats} 
+            onSave={handleUpdateStats} 
+          />
+        ) : (
           <PublicDashboard 
             stats={stats} 
             insights={insights} 
             loadingInsights={loadingInsights} 
-          />
-        ) : (
-          <AdminPanel 
-            stats={stats} 
-            onSave={handleUpdateStats} 
           />
         )}
       </main>
@@ -102,7 +89,10 @@ const App: React.FC = () => {
       <footer className="bg-white border-t border-slate-200 py-6">
         <div className="max-w-6xl mx-auto px-4 text-center">
           <p className="text-sm text-slate-500">
-            &copy; {new Date().getFullYear()} EduStats Analytics. Designed for Google Sites.
+            &copy; {new Date().getFullYear()} EduStats Analytics.
+            {!isAdmin && (
+              <span className="ml-1 opacity-0 pointer-events-none">Admin access via ?admin=true</span>
+            )}
           </p>
         </div>
       </footer>
