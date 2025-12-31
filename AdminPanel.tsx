@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StudentStats } from './types';
-import { Save, RefreshCw, AlertCircle, CheckCircle2, ChevronLeft, Link as LinkIcon, Copy, Zap, Calculator } from 'lucide-react';
+import { Save, RefreshCw, AlertCircle, CheckCircle2, ChevronLeft, Link as LinkIcon, Copy, Zap, Calculator, ExternalLink } from 'lucide-react';
 
 interface Props {
   stats: StudentStats;
@@ -14,91 +14,82 @@ const AdminPanel: React.FC<Props> = ({ stats, onSave, onBack }) => {
     boys: stats.boys,
     girls: stats.girls
   });
-  const [autoBroadcast, setAutoBroadcast] = useState(true);
   const [isSaved, setIsSaved] = useState(false);
   const [permanentLink, setPermanentLink] = useState<string | null>(null);
 
-  // Trigger sync to parent if auto-broadcast is on
-  useEffect(() => {
-    if (autoBroadcast) {
-      const newStats: StudentStats = {
-        ...formData,
-        lastUpdated: new Date().toISOString()
-      };
-      onSave(newStats);
-    }
-  }, [formData, autoBroadcast]);
+  // Automatic calculation logic
+  const handleFieldChange = (field: 'total' | 'boys' | 'girls', value: number) => {
+    setFormData(prev => {
+      let next = { ...prev, [field]: value };
+      
+      if (field === 'boys') {
+        // Changing boys updates total
+        next.total = value + prev.girls;
+      } else if (field === 'girls') {
+        // Changing girls updates total
+        next.total = prev.boys + value;
+      } else if (field === 'total') {
+        // Changing total adjusts girls while keeping boys fixed
+        next.girls = Math.max(0, value - prev.boys);
+        // If boys is now more than total, adjust boys too
+        if (prev.boys > value) {
+          next.boys = value;
+          next.girls = 0;
+        }
+      }
+      
+      return next;
+    });
+  };
 
-  const handleManualSave = () => {
+  const handleSave = () => {
     const newStats: StudentStats = {
       ...formData,
       lastUpdated: new Date().toISOString()
     };
     onSave(newStats);
+    
+    // Generate the permanent link for Google Sites
     const baseUrl = window.location.href.split('?')[0];
     const encoded = btoa(JSON.stringify(newStats));
     setPermanentLink(`${baseUrl}?d=${encoded}`);
+    
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 3000);
-  };
-
-  const handleFieldChange = (name: string, value: number) => {
-    setFormData(prev => {
-      const updated = { ...prev, [name]: value };
-      
-      if (name === 'boys') {
-        updated.total = value + prev.girls;
-      } else if (name === 'girls') {
-        updated.total = prev.boys + value;
-      } else if (name === 'total') {
-        // If total changes, try to maintain current ratio or default to 50/50
-        const currentTotal = prev.boys + prev.girls;
-        if (currentTotal > 0) {
-          const boyRatio = prev.boys / currentTotal;
-          updated.boys = Math.round(value * boyRatio);
-          updated.girls = value - updated.boys;
-        } else {
-          updated.boys = Math.round(value / 2);
-          updated.girls = value - updated.boys;
-        }
-      }
-      return updated;
-    });
   };
 
   const copyLink = () => {
     if (permanentLink) {
       navigator.clipboard.writeText(permanentLink);
-      alert("Link copied! Use this in Google Sites Embed.");
+      alert("Link copied! Use this for the 'Embed' link in Google Sites.");
     }
+  };
+
+  const openDashboard = () => {
+    window.open(window.location.origin, '_blank');
   };
 
   return (
     <div className="max-w-xl mx-auto space-y-6 animate-in slide-in-from-bottom-4 duration-500">
       <div className="flex items-center justify-between">
-        <button onClick={onBack} className="flex items-center text-[10px] font-black uppercase tracking-widest text-slate-400 bg-white px-4 py-2 rounded-full border border-slate-100 shadow-sm">
+        <button 
+          onClick={onBack} 
+          className="flex items-center text-[10px] font-black uppercase tracking-widest text-slate-400 bg-white px-4 py-2 rounded-full border border-slate-100 shadow-sm hover:text-indigo-600 transition-colors"
+        >
           <ChevronLeft size={14} className="mr-1" /> Dashboard
         </button>
         <div className="flex items-center space-x-2">
-          <label className="flex items-center cursor-pointer bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100">
-            <input 
-              type="checkbox" 
-              checked={autoBroadcast} 
-              onChange={(e) => setAutoBroadcast(e.target.checked)}
-              className="hidden"
-            />
-            <Zap size={10} className={`mr-2 ${autoBroadcast ? 'text-indigo-600' : 'text-slate-300'}`} />
-            <span className={`text-[9px] font-black uppercase ${autoBroadcast ? 'text-indigo-600' : 'text-slate-400'}`}>
-              {autoBroadcast ? 'Auto-Sync On' : 'Manual Save Only'}
-            </span>
-          </label>
+          <div className="flex items-center text-[9px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100">
+            <Zap size={10} className="mr-1.5 fill-current animate-pulse" />
+            Live Broadcasting
+          </div>
         </div>
       </div>
 
       <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-2xl overflow-hidden">
         <div className="p-8 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Enrollment Editor</h2>
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Edit Enrollment</h2>
             <p className="text-[10px] text-slate-400 mt-1 uppercase font-black tracking-widest">Calculates Automatically</p>
           </div>
           <div className="p-3 bg-white rounded-2xl shadow-md text-indigo-500">
@@ -138,29 +129,43 @@ const AdminPanel: React.FC<Props> = ({ stats, onSave, onBack }) => {
             </div>
           </div>
 
-          <button
-            onClick={handleManualSave}
-            className={`w-full py-5 rounded-2xl font-black text-base shadow-xl transition-all active:scale-[0.98] flex items-center justify-center space-x-3 ${
-              isSaved ? 'bg-green-600 text-white' : 'bg-indigo-600 text-white'
-            }`}
-          >
-            {isSaved ? <CheckCircle2 size={18} /> : <Save size={18} />}
-            <span>{isSaved ? 'Permanent Link Generated!' : 'Save & Get Link'}</span>
-          </button>
+          <div className="flex flex-col space-y-3">
+            <button
+              onClick={handleSave}
+              className={`w-full py-5 rounded-2xl font-black text-base shadow-xl transition-all active:scale-[0.98] flex items-center justify-center space-x-3 ${
+                isSaved ? 'bg-green-600 text-white shadow-green-100' : 'bg-indigo-600 text-white shadow-indigo-100 hover:bg-indigo-700'
+              }`}
+            >
+              {isSaved ? <CheckCircle2 size={18} /> : <Save size={18} />}
+              <span>{isSaved ? 'Published & Saved!' : 'Save & Publish Updates'}</span>
+            </button>
+            
+            <button
+              onClick={openDashboard}
+              className="w-full py-3 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50 flex items-center justify-center"
+            >
+              <ExternalLink size={14} className="mr-2" /> Open Dashboard In New Tab
+            </button>
+          </div>
         </div>
 
         {permanentLink && (
           <div className="p-8 bg-slate-50 border-t border-slate-100 space-y-4">
-            <h4 className="text-[10px] font-black uppercase tracking-widest flex items-center">
-              <LinkIcon size={12} className="mr-2" /> Permanent Google Site Link
+            <h4 className="text-[10px] font-black uppercase tracking-widest flex items-center text-slate-800">
+              <LinkIcon size={12} className="mr-2" /> Permanent Link for Google Sites
             </h4>
+            <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-sm mb-2">
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight leading-relaxed">
+                If the live update isn't appearing in your Google Sites iframe, copy this link and update the "Embed" source in your Google Sites editor.
+              </p>
+            </div>
             <div className="flex space-x-2">
               <input 
                 readOnly 
                 value={permanentLink} 
-                className="flex-grow bg-white border border-slate-200 rounded-xl px-4 py-2 text-[9px] font-mono overflow-hidden"
+                className="flex-grow bg-white border border-slate-200 rounded-xl px-4 py-2 text-[9px] font-mono overflow-hidden text-slate-400"
               />
-              <button onClick={copyLink} className="bg-indigo-600 text-white p-2.5 rounded-xl hover:bg-indigo-700">
+              <button onClick={copyLink} className="bg-indigo-600 text-white p-2.5 rounded-xl hover:bg-indigo-700 transition-all">
                 <Copy size={16} />
               </button>
             </div>
