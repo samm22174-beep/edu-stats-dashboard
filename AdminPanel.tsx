@@ -49,6 +49,7 @@ const AdminPanel: React.FC<Props> = ({ stats, onSave }) => {
   return (
     <div className="max-w-4xl mx-auto py-8 space-y-8 animate-in slide-in-from-bottom-4 duration-500">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
         <div className="lg:col-span-2 bg-white rounded-[2rem] border border-slate-200 shadow-xl overflow-hidden">
           <div className="p-8 bg-slate-50 border-b border-slate-200">
             <h2 className="text-2xl font-black text-slate-900 tracking-tight">Data Management</h2>
@@ -99,7 +100,7 @@ const AdminPanel: React.FC<Props> = ({ stats, onSave }) => {
                 isSaved ? 'bg-green-500 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200'
               }`}
             >
-              {isSaved ? <><CheckCircle2 /> <span>Published Successfully!</span></> : <><Save /> <span>Update Dashboard</span></>}
+              {isSaved ? <><CheckCircle2 /> <span>Data Saved!</span></> : <><Save /> <span>Update Public Dashboard</span></>}
             </button>
           </form>
         </div>
@@ -109,23 +110,31 @@ const AdminPanel: React.FC<Props> = ({ stats, onSave }) => {
             <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mb-6 backdrop-blur-md">
               <Layout className="text-white" size={24} />
             </div>
-            <h3 className="text-xl font-black mb-4">Google Sites Guide</h3>
+            <h3 className="text-xl font-black mb-4">Google Sites Help</h3>
             <ul className="space-y-4">
               <li className="flex items-start space-x-3">
                 <div className="bg-white/20 rounded-lg p-1 mt-0.5"><ExternalLink size={14}/></div>
-                <p className="text-sm font-medium leading-tight">Copy your application's hosted URL.</p>
+                <p className="text-sm font-medium leading-tight">Public URL: <b>your-site.com</b></p>
               </li>
               <li className="flex items-start space-x-3">
                 <div className="bg-white/20 rounded-lg p-1 mt-0.5"><MousePointer2 size={14}/></div>
-                <p className="text-sm font-medium leading-tight">In Google Sites, click <b>Insert &gt; Embed</b>.</p>
+                <p className="text-sm font-medium leading-tight">Admin URL: <b>your-site.com?admin=true</b></p>
               </li>
               <li className="flex items-start space-x-3">
                 <div className="bg-white/20 rounded-lg p-1 mt-0.5"><Layout size={14}/></div>
-                <p className="text-sm font-medium leading-tight">Paste the URL and resize the frame to fit.</p>
+                <p className="text-sm font-medium leading-tight">Embed only the Public URL for your students.</p>
               </li>
             </ul>
           </div>
+          
+          <div className="mt-8 pt-6 border-t border-white/10">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-200">Security Note</p>
+            <p className="text-xs text-indigo-100 mt-2">
+              Keep the <b>?admin=true</b> link private. Only those with the link can edit the data.
+            </p>
+          </div>
         </div>
+
       </div>
     </div>
   );
