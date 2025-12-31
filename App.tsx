@@ -16,6 +16,7 @@ const App: React.FC = () => {
   const [stats, setStats] = useState<StudentStats>(DEFAULT_STATS);
   const [view, setView] = useState<'public' | 'admin'>('public');
 
+  // Load initial data and set up live listeners
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     
@@ -36,7 +37,7 @@ const App: React.FC = () => {
       }
     }
 
-    // 2. Load from LocalStorage
+    // 2. Load from LocalStorage for standard sessions
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
@@ -45,6 +46,22 @@ const App: React.FC = () => {
         setStats(DEFAULT_STATS);
       }
     }
+
+    // 3. AUTO-SYNC: Listen for changes from other tabs/windows
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY && e.newValue) {
+        try {
+          const newStats = JSON.parse(e.newValue);
+          setStats(newStats);
+          console.log("Stats auto-synced from another window.");
+        } catch (err) {
+          console.error("Failed to parse synced data", err);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const handleUpdateStats = (newStats: StudentStats) => {
