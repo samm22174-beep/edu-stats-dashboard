@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { StudentStats } from './types';
-import { Users, UserRound, UserRoundSearch, Clock } from 'lucide-react';
+import { Users, UserRound, UserRoundSearch, Clock, RefreshCw } from 'lucide-react';
 import { 
   PieChart, 
   Pie, 
@@ -36,6 +36,15 @@ const StatCard: React.FC<{
 );
 
 const PublicDashboard: React.FC<Props> = ({ stats }) => {
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  // Visual feedback when stats change
+  useEffect(() => {
+    setIsSyncing(true);
+    const timer = setTimeout(() => setIsSyncing(false), 1000);
+    return () => clearTimeout(timer);
+  }, [stats.lastUpdated]);
+
   const chartData = [
     { name: 'BOYS', value: stats.boys, color: '#6366F1' }, 
     { name: 'GIRLS', value: stats.girls, color: '#F43F5E' }, 
@@ -46,15 +55,20 @@ const PublicDashboard: React.FC<Props> = ({ stats }) => {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="text-center space-y-2">
-        {/* Reduced font size from text-3xl md:text-4xl to text-xl md:text-2xl */}
         <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight uppercase">Faafu Atoll School Student Status</h2>
-        <div className="flex items-center justify-center">
+        <div className="flex items-center justify-center h-8">
            <p 
             key={stats.lastUpdated}
-            className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center bg-white px-3 py-1.5 rounded-full border border-slate-100 shadow-sm animate-in zoom-in duration-300"
+            className={`text-[9px] font-black uppercase tracking-[0.2em] flex items-center bg-white px-3 py-1.5 rounded-full border transition-all duration-300 ${
+              isSyncing ? 'border-indigo-500 text-indigo-600 scale-105 shadow-md' : 'border-slate-100 text-slate-400 shadow-sm'
+            }`}
           >
-            <Clock size={10} className="mr-1.5 text-indigo-500 animate-pulse" />
-            Live Sync: {new Date(stats.lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            {isSyncing ? (
+              <RefreshCw size={10} className="mr-1.5 animate-spin" />
+            ) : (
+              <Clock size={10} className="mr-1.5 text-indigo-500 animate-pulse" />
+            )}
+            {isSyncing ? 'Syncing Update...' : `Live Sync: ${new Date(stats.lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`}
           </p>
         </div>
       </div>
