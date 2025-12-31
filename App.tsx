@@ -14,7 +14,6 @@ const DEFAULT_STATS: StudentStats = {
 };
 
 const App: React.FC = () => {
-  // This state represents what the Public Dashboard shows
   const [liveStats, setLiveStats] = useState<StudentStats>(DEFAULT_STATS);
   const [view, setView] = useState<'public' | 'admin'>('public');
   const broadcastChannelRef = useRef<BroadcastChannel | null>(null);
@@ -32,7 +31,7 @@ const App: React.FC = () => {
       try {
         urlStats = JSON.parse(atob(urlData));
       } catch (e) {
-        console.error("URL data corruption");
+        console.error("URL data parsing error");
       }
     }
 
@@ -40,7 +39,7 @@ const App: React.FC = () => {
       try {
         storageStats = JSON.parse(saved);
       } catch (e) {
-        console.error("Storage data corruption");
+        console.error("Storage data parsing error");
       }
     }
 
@@ -63,35 +62,28 @@ const App: React.FC = () => {
     // 1. Initial Load
     syncLiveStats();
 
-    // 2. Check for Admin View
+    // 2. Routing Logic
     const params = new URLSearchParams(window.location.search);
-    if (params.get('admin') === 'true') {
-      setView('admin');
-    }
+    if (params.get('admin') === 'true') setView('admin');
 
-    // 3. Setup Broadcast Channel for cross-tab sync
+    // 3. Broadcast Channel for multi-tab/iframe sync
     const channel = new BroadcastChannel(SYNC_CHANNEL);
     broadcastChannelRef.current = channel;
     channel.onmessage = (event) => {
       if (event.data?.type === 'STATS_UPDATE') {
         const incoming = event.data.payload as StudentStats;
-        setLiveStats(prev => {
-          if (new Date(incoming.lastUpdated) > new Date(prev.lastUpdated)) {
-            return incoming;
-          }
-          return prev;
-        });
+        setLiveStats(prev => (new Date(incoming.lastUpdated) > new Date(prev.lastUpdated) ? incoming : prev));
       }
     };
 
-    // 4. Robust event listeners for "On the spot" updates
+    // 4. Global Refresher Listeners
     window.addEventListener('storage', syncLiveStats);
     window.addEventListener('focus', syncLiveStats);
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') syncLiveStats();
     });
 
-    // 5. Polling for restricted environments (Google Sites)
+    // 5. Polling for Google Sites sandboxes (runs every 3 seconds)
     const interval = setInterval(syncLiveStats, 3000);
 
     return () => {
@@ -102,17 +94,11 @@ const App: React.FC = () => {
     };
   }, []);
 
-  // When Admin clicks "Publish"
   const handlePublishStats = (newStats: StudentStats) => {
     setLiveStats(newStats);
-    // Persist for next session
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newStats));
-    // Alert other open frames/tabs immediately
     if (broadcastChannelRef.current) {
-      broadcastChannelRef.current.postMessage({
-        type: 'STATS_UPDATE',
-        payload: newStats
-      });
+      broadcastChannelRef.current.postMessage({ type: 'STATS_UPDATE', payload: newStats });
     }
   };
 
@@ -131,16 +117,16 @@ const App: React.FC = () => {
         
         <div className="flex items-center space-x-4">
           {view === 'admin' ? (
-             <div className="flex items-center space-x-2 px-3 py-1 bg-amber-50 text-amber-700 rounded-full border border-amber-200">
-             <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></span>
-             <span className="text-[9px] font-black uppercase tracking-widest">Admin Control</span>
+             <div className="flex items-center space-x-2 px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full border border-indigo-100">
+             <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse"></span>
+             <span className="text-[9px] font-black uppercase tracking-widest">Admin Mode</span>
            </div>
           ) : (
             <button 
               onClick={() => setView('admin')}
               className="text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 transition-colors"
             >
-              Manage Data
+              Update Data
             </button>
           )}
         </div>
