@@ -18,101 +18,71 @@ const App: React.FC = () => {
   const [view, setView] = useState<'public' | 'admin'>('public');
   const broadcastChannelRef = useRef<BroadcastChannel | null>(null);
 
-  // Initialize Broadcast Channel and Data
-  useEffect(() => {
-    // 1. Setup Broadcast Channel for "on the spot" updates
-    const channel = new BroadcastChannel(SYNC_CHANNEL);
-    broadcastChannelRef.current = channel;
-
-    channel.onmessage = (event) => {
-      if (event.data && event.data.type === 'STATS_UPDATE') {
-        const incomingStats = event.data.payload as StudentStats;
-        setStats(prev => {
-          // Only update if incoming data is actually newer
-          if (new Date(incomingStats.lastUpdated) > new Date(prev.lastUpdated)) {
-            console.log("On-the-spot update received via BroadcastChannel");
-            return incomingStats;
-          }
-          return prev;
-        });
-      }
-    };
-
+  // Sync Logic
+  const syncFromStorage = () => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('admin') === 'true') {
-      setView('admin');
+    const urlData = params.get('d');
+    const saved = localStorage.getItem(STORAGE_KEY);
+    
+    let urlStats: StudentStats | null = null;
+    let storageStats: StudentStats | null = null;
+
+    if (urlData) {
+      try { urlStats = JSON.parse(atob(urlData)); } catch (e) { console.error("URL parse error"); }
+    }
+    if (saved) {
+      try { storageStats = JSON.parse(saved); } catch (e) { console.error("Storage parse error"); }
     }
 
-    // 2. Initial Data Loading Logic (The "Latest Wins" Strategy)
-    const loadInitialData = () => {
-      const urlData = params.get('d');
-      const saved = localStorage.getItem(STORAGE_KEY);
-      
-      let urlStats: StudentStats | null = null;
-      let storageStats: StudentStats | null = null;
+    setStats(prev => {
+      let latest = prev;
+      if (urlStats && new Date(urlStats.lastUpdated) > new Date(latest.lastUpdated)) latest = urlStats;
+      if (storageStats && new Date(storageStats.lastUpdated) > new Date(latest.lastUpdated)) latest = storageStats;
+      return latest;
+    });
+  };
 
-      if (urlData) {
-        try { urlStats = JSON.parse(atob(urlData)); } catch (e) { console.error("Invalid URL data"); }
-      }
-      if (saved) {
-        try { storageStats = JSON.parse(saved); } catch (e) { console.error("Invalid storage data"); }
-      }
-
-      // Logic: Pick the absolute latest update between the URL and local storage
-      let finalStats = DEFAULT_STATS;
-      
-      if (urlStats && storageStats) {
-        finalStats = new Date(urlStats.lastUpdated) > new Date(storageStats.lastUpdated) 
-          ? urlStats 
-          : storageStats;
-      } else if (urlStats) {
-        finalStats = urlStats;
-      } else if (storageStats) {
-        finalStats = storageStats;
-      }
-
-      setStats(finalStats);
-    };
-
-    loadInitialData();
-
-    // 3. Fallback: Storage event (for browsers that might struggle with BroadcastChannel)
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY && e.newValue) {
-        try {
-          const newStats = JSON.parse(e.newValue);
-          setStats(prev => {
-            if (new Date(newStats.lastUpdated) > new Date(prev.lastUpdated)) {
-              return newStats;
-            }
-            return prev;
-          });
-        } catch (err) {
-          console.error("Failed to parse synced storage data", err);
-        }
+  useEffect(() => {
+    // 1. Setup Broadcast Channel
+    const channel = new BroadcastChannel(SYNC_CHANNEL);
+    broadcastChannelRef.current = channel;
+    channel.onmessage = (event) => {
+      if (event.data?.type === 'STATS_UPDATE') {
+        const incoming = event.data.payload;
+        setStats(prev => (new Date(incoming.lastUpdated) > new Date(prev.lastUpdated) ? incoming : prev));
       }
     };
 
-    window.addEventListener('storage', handleStorageChange);
+    // 2. Initial Sync
+    syncFromStorage();
+
+    // 3. Set view
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('admin') === 'true') setView('admin');
+
+    // 4. "On the Spot" Listeners
+    window.addEventListener('storage', syncFromStorage);
+    window.addEventListener('focus', syncFromStorage);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') syncFromStorage();
+    });
+
+    // 5. Heartbeat Sync (Checks every 2 seconds for updates)
+    const interval = setInterval(syncFromStorage, 2000);
+
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('storage', syncFromStorage);
+      window.removeEventListener('focus', syncFromStorage);
+      clearInterval(interval);
       channel.close();
     };
   }, []);
 
   const handleUpdateStats = (newStats: StudentStats) => {
-    // 1. Update local state
     setStats(newStats);
-    
-    // 2. Persist to LocalStorage (triggers 'storage' event in other tabs)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newStats));
-    
-    // 3. Broadcast to all other frames/tabs immediately
     if (broadcastChannelRef.current) {
-      broadcastChannelRef.current.postMessage({
-        type: 'STATS_UPDATE',
-        payload: newStats
-      });
+      broadcastChannelRef.current.postMessage({ type: 'STATS_UPDATE', payload: newStats });
     }
   };
 
@@ -131,18 +101,10 @@ const App: React.FC = () => {
         
         <div className="flex items-center space-x-4">
           {view === 'admin' && (
-            <>
-              <button 
-                onClick={() => setView('public')}
-                className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 transition-colors"
-              >
-                View Dashboard
-              </button>
-              <div className="flex items-center space-x-2 px-3 py-1 bg-amber-50 text-amber-700 rounded-full border border-amber-200">
-                <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></span>
-                <span className="text-[9px] font-black uppercase tracking-tighter">Edit Mode</span>
-              </div>
-            </>
+            <div className="flex items-center space-x-2 px-3 py-1 bg-amber-50 text-amber-700 rounded-full border border-amber-200">
+              <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></span>
+              <span className="text-[9px] font-black uppercase">Edit Mode</span>
+            </div>
           )}
         </div>
       </header>
